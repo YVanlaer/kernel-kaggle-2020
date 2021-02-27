@@ -50,5 +50,6 @@ class Dataset():
     def X_mat(self):
         """Load and access X_mat."""
         if self._X_mat is None:
-            self._X_mat = pd.read_csv(join(self.root_dir, f'Xtr{self.k}_mat100.csv'))
+            self._X_mat = pd.read_csv(join(self.root_dir, f'Xtr{self.k}_mat100.csv'),
+                                      sep=' ', header=None)
         return self._X_mat
