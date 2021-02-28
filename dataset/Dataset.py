@@ -21,6 +21,7 @@ class Dataset():
         self._y = None  # Train target
         self._X_test = None  # Test set
         self._X_mat = None  # Train set (features precomputed)
+        self._X_mat_test = None  # Test set (features precomputed)
 
     @property
     def X(self):
@@ -53,3 +54,11 @@ class Dataset():
             self._X_mat = pd.read_csv(join(self.root_dir, f'Xtr{self.k}_mat100.csv'),
                                       sep=' ', header=None)
         return self._X_mat
+
+    @property
+    def X_mat_test(self):
+        """Load and access X_mat_test."""
+        if self._X_mat_test is None:
+            self._X_mat_test = pd.read_csv(join(self.root_dir, f'Xte{self.k}_mat100.csv'),
+                                           sep=' ', header=None)
+        return self._X_mat_test
