@@ -21,3 +21,6 @@ class GaussianKernel(BaseKernel):
 
     def __call__(self, X1, X2):
         return np.exp(-np.power(distance.cdist(X1, X2), 2)/(2*self.var))
+
+    def __repr__(self):
+        return f'GaussianKernel(var={self.var})'
