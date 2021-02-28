@@ -7,7 +7,7 @@ from estimators import KernelSVMEstimator
 
 for k in [0, 1, 2]:
     ds = Dataset(k=k)
-    est = KernelSVMEstimator(lbd=0.001, kernel=GaussianKernel, kernel_params={'var': 0.1})
+    est = KernelSVMEstimator(lbd=1e-6, kernel=GaussianKernel(var=0.001))
 
     X_train, X_val, y_train, y_val = train_test_split(ds.X_mat, ds.y,
                                                       test_size=0.2,

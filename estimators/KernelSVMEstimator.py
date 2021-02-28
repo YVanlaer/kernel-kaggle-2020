@@ -9,20 +9,18 @@ from .BaseEstimator import BaseEstimator
 class KernelSVMEstimator(BaseEstimator):
     """Implement a sklearn compatible kernel SVM estimator."""
 
-    def __init__(self, lbd, kernel, kernel_params):
+    def __init__(self, lbd, kernel):
         """Init.
 
         Parameters:
         -----------
             lbd : float
                 Weight in the optimization problem.
-            Kernel : class inheriting from Kernel
-                The kernel. Note that the class must not be instanciated.
-            kernel_params : dict
-                The parameters given to the Kernel class when instanciating.
+            kernel : instance of BaseKernel
+                The kernel to use.
 
         """
-        self.kernel = kernel(**kernel_params)
+        self.kernel = kernel
         self.lbd = lbd
 
         self.X = None
