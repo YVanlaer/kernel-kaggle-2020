@@ -1,8 +1,9 @@
 """Implement the BaseEstimator class."""
 from abc import ABC, abstractmethod
+from sklearn.base import BaseEstimator
 
 
-class BaseEstimator(ABC):
+class BaseEstimator(ABC, BaseEstimator):
 
     @abstractmethod
     def fit(self, X, y):
