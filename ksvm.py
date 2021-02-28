@@ -1,4 +1,4 @@
-"""Execute kernel SVM."""
+"""Run kernel SVM."""
 from sklearn.model_selection import train_test_split
 
 from dataset import Dataset, MergedDataset
