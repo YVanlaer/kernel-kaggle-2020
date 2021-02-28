@@ -1,1 +1,1 @@
-from .Dataset import Dataset
+from .Dataset import Dataset, MergedDataset
