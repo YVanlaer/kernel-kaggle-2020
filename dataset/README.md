@@ -9,7 +9,7 @@ Two data loaders are available: `Dataset` and `MergedDataset`. Each has the foll
 
 When initializing the `Dataset` class, one can specify one of the 3 datasets with the attribute `k`.
 
-The `MergedDataset` class allows to load the full concatenated data and access it with the same attributed.
+The `MergedDataset` class allows to load the full concatenated data and access it with the same attributes.
 
 **Example**
 ```python
