@@ -1,7 +1,5 @@
 """Implement the GaussianKernel class."""
 import numpy as np
-import pandas as pd
-from scipy.spatial import distance
 from dtaidistance import dtw
 import hashlib
 
@@ -13,7 +11,7 @@ class DTWKernel(BaseKernel):
     # Store precomputed DTW matrices to save time
     dtw_matrices: dict = {}
 
-    def __init__(self, var=1):
+    def __init__(self, var=1, encoding='four'):
         """Init.
 
         Parameters:
@@ -21,9 +19,10 @@ class DTWKernel(BaseKernel):
 
         """
         self.var = var
+        self.encoding = encoding
 
     @staticmethod
-    def one_sequence_to_timeseries(sequence):
+    def one_sequence_to_timeseries(sequence, encoding):
         """Convert a DNA sequence to a time series.
 
         Parameters:
@@ -36,10 +35,20 @@ class DTWKernel(BaseKernel):
             timeseries : np.array of shape (n,)
 
         """
-        sequence = sequence.replace('A', '0')
-        sequence = sequence.replace('T', '1')
-        sequence = sequence.replace('C', '2')
-        sequence = sequence.replace('G', '3')
+        if encoding == 'four':
+            sequence = sequence.replace('A', '0')
+            sequence = sequence.replace('T', '1')
+            sequence = sequence.replace('C', '2')
+            sequence = sequence.replace('G', '3')
+
+        elif encoding == 'two':
+            sequence = sequence.replace('A', '0')
+            sequence = sequence.replace('T', '0')
+            sequence = sequence.replace('C', '1')
+            sequence = sequence.replace('G', '1')
+
+        else:
+            raise ValueError(f'Not known encoding "{encoding}".')
 
         sequence = list(sequence)
         sequence = np.array(sequence).astype(float)
@@ -47,13 +56,13 @@ class DTWKernel(BaseKernel):
         return sequence
 
     @staticmethod
-    def sequence_to_timeseries(sequences):
-        return np.array([DTWKernel.one_sequence_to_timeseries(s) for s in sequences])
+    def sequence_to_timeseries(sequences, encoding):
+        return np.array([DTWKernel.one_sequence_to_timeseries(s, encoding) for s in sequences])
 
     @staticmethod
     def hash_sequences(Xs):
-        X = pd.concat(Xs, axis=0)
-        return hashlib.sha256(pd.util.hash_pandas_object(X).values).hexdigest()
+        array = np.concatenate(Xs, axis=0)
+        return hashlib.sha256(array).hexdigest()
 
     def register_dtw_matrix(self, matrix, X1, X2):
         h = self.hash_sequences([X1, X2])
@@ -68,13 +77,13 @@ class DTWKernel(BaseKernel):
     def __call__(self, X1, X2):
         print(f'Keys in dtw matrices: {len(self.dtw_matrices.keys())}')
         # Check if kernel matrix has already been computed
-        dtw_matrix = self.get_dtw_matrix(X1, X2)
+        X1_ = self.sequence_to_timeseries(X1, self.encoding)
+        X2_ = self.sequence_to_timeseries(X2, self.encoding)
+        dtw_matrix = self.get_dtw_matrix(X1_, X2_)
 
         if dtw_matrix is None:
             print('DTW matrix not found')
 
-            X1_ = self.sequence_to_timeseries(X1)
-            X2_ = self.sequence_to_timeseries(X2)
             n1 = X1_.shape[0]
             n2 = X2_.shape[0]
 
@@ -84,12 +93,9 @@ class DTWKernel(BaseKernel):
                                                   block=((0, n1), (n1, n1+n2)))
             dtw_matrix = dtw_matrix[:n1, n1:]
 
-            self.register_dtw_matrix(dtw_matrix, X1, X2)
+            self.register_dtw_matrix(dtw_matrix, X1_, X2_)
         else:
             print('DTW matrix found')
 
         K = np.exp(-np.power(dtw_matrix, 2)/(2*self.var))
         return K
-
-    def __repr__(self):
-        return f'DTWKernel({self.var})'
