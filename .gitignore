@@ -3,6 +3,7 @@ machine-learning-with-kernel-methods-2021
 *.csv
 .Ds_store
 .python-version
+*_cache
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
