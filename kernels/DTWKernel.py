@@ -29,6 +29,8 @@ class DTWKernel(BaseKernel):
         -----------
             sequence : str
                 DNA sequence containing n letters.
+            encoding : str
+                Choose the encoding of the letters ATCG. Choices 'four', 'two'.
 
         Returns:
         --------
