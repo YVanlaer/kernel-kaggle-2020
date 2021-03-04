@@ -3,3 +3,6 @@ numpy
 cvxpy
 scipy
 sklearn
+dtaidistance
+scipy
+joblib
