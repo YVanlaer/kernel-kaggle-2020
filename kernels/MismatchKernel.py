@@ -1,6 +1,7 @@
 """Implement the MismatchKernel class."""
 import scipy.sparse
 import numpy as np
+import os
 from joblib import Memory
 
 from .BaseKernel import BaseKernel
@@ -83,7 +84,7 @@ class MismatchKernel(BaseKernel):
         return count.tocsc()
 
     @staticmethod
-    def get_kernel_matrix(X1, X2, k, m, n):
+    def get_kernel_matrix(X1, X2, k, m, n, allow_kernel_saving=True):
         """May seem redundant with __call__ but is necessary for caching the result"""
         phis1 = [MismatchKernel.phi(sequence, k, m, n) for sequence in X1]
         phis2 = [MismatchKernel.phi(sequence, k, m, n) for sequence in X2]
@@ -93,8 +94,37 @@ class MismatchKernel(BaseKernel):
 
         K = phi1.transpose().dot(phi2)
 
+        if allow_kernel_saving:
+            MismatchKernel.save_sparse_matrix(K, k, m, n)
+
         return K
 
-    def __call__(self, X1, X2):
+
+    @staticmethod
+    def get_sparse_matrix_file_name(k, m, n):
+        parent_folder = "sparse_matrices/mismatch_kernels"
+        file_name = f"{parent_folder}/mismatch_k_{k}_m_{m}_n_{n}.npz"
+        if not os.path.exists(parent_folder):
+            os.makedirs(parent_folder)
+        return file_name
+
+    @staticmethod
+    def check_exists_sparse_matrix_file_name(k, m, n):
+        file_name = MismatchKernel.get_sparse_matrix_file_name(k, m, n)
+        return os.path.exists(file_name)
+
+    @staticmethod
+    def save_sparse_matrix(K, k, m, n):
+        matrix_file_name = MismatchKernel.get_sparse_matrix_file_name(k, m, n)
+        scipy.sparse.save_npz(matrix_file_name, K)
+
+    @staticmethod
+    def load_sparse_matrix(k, m, n):
+        matrix_file_name = MismatchKernel.get_sparse_matrix_file_name(k, m, n)
+        return scipy.sparse.load_npz(matrix_file_name)
+
+    def __call__(self, X1, X2, allow_file_loading=True, allow_kernel_saving=True):
         """Create a kernel matrix given inputs."""
-        return self.get_kernel_matrix(X1, X2, self.k, self.m, self.n)
+        if allow_file_loading and MismatchKernel.check_exists_sparse_matrix_file_name(self.k, self.m, self.n):
+            return MismatchKernel.load_sparse_matrix(self.k, self.m, self.n)
+        return self.get_kernel_matrix(X1, X2, self.k, self.m, self.n, allow_kernel_saving)
