@@ -51,7 +51,7 @@ class KernelSVMEstimator(BaseEstimator):
         return y
 
     def fit(self, X, y):
-        K = self.kernel(X, X)
+        K = self.kernel(X, X, is_train=True)
         n = K.shape[0]
         e = cp.Variable(n)
         alpha = cp.Variable(n)
@@ -73,7 +73,7 @@ class KernelSVMEstimator(BaseEstimator):
         return self
 
     def predict(self, X):
-        K_test = self.kernel(self.X, X)
+        K_test = self.kernel(self.X, X, is_predict=True)
         y_pred = self.alpha@K_test
         y_pred = self._inverse_transform_labels(y_pred)
         return y_pred

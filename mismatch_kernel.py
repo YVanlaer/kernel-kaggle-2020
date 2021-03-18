@@ -8,13 +8,13 @@ import joblib
 from dataset import Dataset
 from kernels import MismatchKernel
 from estimators import KernelSVMEstimator
-
+from predict import predict
 
 # Validate
 if __name__ == '__main__':
     for k in [0, 1, 2]:
         ds = Dataset(k=k)
-        est = KernelSVMEstimator(lbd=1e-6, kernel=MismatchKernel(k=3, m=1))
+        est = KernelSVMEstimator(lbd=1e-6, kernel=MismatchKernel(k=3, m=2))
 
         X_train, X_val, y_train, y_val = train_test_split(ds.X, ds.y,
                                                         test_size=0.2,
@@ -31,11 +31,12 @@ if __name__ == '__main__':
 # if __name__ == '__main__':
 #     ds = Dataset(k=2)
 
-#     estimator = KernelSVMEstimator(lbd=1e-6, kernel=SpectrumKernel(k=3))
+#     estimator = KernelSVMEstimator(lbd=1e-6, kernel=MismatchKernel(k=3, m=1))
 #     kernels = []
 
-#     for k in range(5, 13):  #[5, 6, 7, 8]:
-#         kernels.append(SpectrumKernel(k=k))
+#     for k in range(4, 8):  #[5, 6, 7, 8]:
+#         for m in range(1, 4):
+#             kernels.append(MismatchKernel(k=k, m=m))
 
 #     param_grid = {
 #         'lbd': [1e-3],  #np.logspace(-6, -3, 2),
@@ -57,27 +58,10 @@ if __name__ == '__main__':
 
 # Predict
 # if __name__ == '__main__':
-#     print('Pred 1')
-#     ds = Dataset(k=0)
-#     est1 = KernelSVMEstimator(lbd=0.001, kernel=SpectrumKernel(k=11))
-#     est1.fit(ds.X, ds.y)
-#     y_pred1 = est1.predict(ds.X_test)
-#     y_pred1 = pd.Series(y_pred1, index=ds.X_test.index, name='Bound')
-
-#     print('Pred 2')
-#     ds = Dataset(k=1)
-#     est2 = KernelSVMEstimator(lbd=0.001, kernel=SpectrumKernel(k=6))
-#     est2.fit(ds.X, ds.y)
-#     y_pred2 = est2.predict(ds.X_test)
-#     y_pred2 = pd.Series(y_pred2, index=ds.X_test.index, name='Bound')
-
-#     print('Pred 3')
-#     ds = Dataset(k=2)
-#     est3 = KernelSVMEstimator(lbd=0.001, kernel=SpectrumKernel(k=10))
-#     est3.fit(ds.X, ds.y)
-#     y_pred3 = est3.predict(ds.X_test)
-#     y_pred3 = pd.Series(y_pred3, index=ds.X_test.index, name='Bound')
-
-#     y_pred = pd.concat([y_pred1, y_pred2, y_pred3], axis=0, verify_integrity=True)
-#     y_pred = y_pred.astype(int)
-#     y_pred.to_csv('y_pred.csv')
+#     lambdas = [1e-3, 1e-3, 1e-3]
+#     kernels = [
+#         MismatchKernel(k=11, m=0),
+#         MismatchKernel(k=6, m=0),
+#         MismatchKernel(k=10, m=0),
+#     ]
+#     predict(lambdas, kernels)

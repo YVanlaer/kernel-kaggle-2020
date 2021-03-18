@@ -84,7 +84,7 @@ class MismatchKernel(BaseKernel):
         return count.tocsc()
 
     @staticmethod
-    def get_kernel_matrix(X1, X2, k, m, n, allow_kernel_saving=True):
+    def get_kernel_matrix(X1, X2, k, m, n, allow_kernel_saving=True, is_train=False, is_predict=False):
         """May seem redundant with __call__ but is necessary for caching the result"""
         phis1 = [MismatchKernel.phi(sequence, k, m, n) for sequence in X1]
         phis2 = [MismatchKernel.phi(sequence, k, m, n) for sequence in X2]
@@ -95,36 +95,46 @@ class MismatchKernel(BaseKernel):
         K = phi1.transpose().dot(phi2)
 
         if allow_kernel_saving:
-            MismatchKernel.save_sparse_matrix(K, k, m, n)
+            MismatchKernel.save_sparse_matrix(K, k, m, n, is_train, is_predict)
 
         return K
 
 
     @staticmethod
-    def get_sparse_matrix_file_name(k, m, n):
+    def get_sparse_matrix_file_name(k, m, n, is_train=False, is_predict=False):
         parent_folder = "sparse_matrices/mismatch_kernels"
-        file_name = f"{parent_folder}/mismatch_k_{k}_m_{m}_n_{n}.npz"
+        if is_train:
+            suffix = "_train"
+        elif is_predict:
+            suffix = "_pred"
+        else:
+            suffix = ""
+
+        file_name = f"{parent_folder}/mismatch_k_{k}_m_{m}_n_{n}{suffix}.npz"
         if not os.path.exists(parent_folder):
             os.makedirs(parent_folder)
         return file_name
 
     @staticmethod
-    def check_exists_sparse_matrix_file_name(k, m, n):
-        file_name = MismatchKernel.get_sparse_matrix_file_name(k, m, n)
+    def check_exists_sparse_matrix_file_name(k, m, n, is_train=False, is_predict=False):
+        file_name = MismatchKernel.get_sparse_matrix_file_name(k, m, n, is_train, is_predict)
         return os.path.exists(file_name)
 
     @staticmethod
-    def save_sparse_matrix(K, k, m, n):
-        matrix_file_name = MismatchKernel.get_sparse_matrix_file_name(k, m, n)
+    def save_sparse_matrix(K, k, m, n, is_train=False, is_predict=False):
+        matrix_file_name = MismatchKernel.get_sparse_matrix_file_name(k, m, n, is_train, is_predict)
         scipy.sparse.save_npz(matrix_file_name, K)
 
     @staticmethod
-    def load_sparse_matrix(k, m, n):
-        matrix_file_name = MismatchKernel.get_sparse_matrix_file_name(k, m, n)
-        return scipy.sparse.load_npz(matrix_file_name)
+    def load_sparse_matrix(k, m, n, is_train=False, is_predict=False):
+        print("Loading sparse kernel...")
+        matrix_file_name = MismatchKernel.get_sparse_matrix_file_name(k, m, n, is_train, is_predict)
+        K = scipy.sparse.load_npz(matrix_file_name)
+        print("Kernel loaded.")
+        return K
 
-    def __call__(self, X1, X2, allow_file_loading=True, allow_kernel_saving=True):
+    def __call__(self, X1, X2, allow_file_loading=True, allow_kernel_saving=True, is_train=False, is_predict=False):
         """Create a kernel matrix given inputs."""
-        if allow_file_loading and MismatchKernel.check_exists_sparse_matrix_file_name(self.k, self.m, self.n):
-            return MismatchKernel.load_sparse_matrix(self.k, self.m, self.n)
-        return self.get_kernel_matrix(X1, X2, self.k, self.m, self.n, allow_kernel_saving)
+        if allow_file_loading and MismatchKernel.check_exists_sparse_matrix_file_name(self.k, self.m, self.n, is_train, is_predict):
+            return MismatchKernel.load_sparse_matrix(self.k, self.m, self.n, is_train, is_predict)
+        return self.get_kernel_matrix(X1, X2, self.k, self.m, self.n, allow_kernel_saving, is_train, is_predict)
