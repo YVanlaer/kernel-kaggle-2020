@@ -135,6 +135,6 @@ class MismatchKernel(BaseKernel):
 
     def __call__(self, X1, X2, allow_file_loading=True, allow_kernel_saving=True, is_train=False, is_predict=False):
         """Create a kernel matrix given inputs."""
-        if allow_file_loading and MismatchKernel.check_exists_sparse_matrix_file_name(self.k, self.m, self.n, is_train, is_predict):
-            return MismatchKernel.load_sparse_matrix(self.k, self.m, self.n, is_train, is_predict)
+        # if allow_file_loading and MismatchKernel.check_exists_sparse_matrix_file_name(self.k, self.m, self.n, is_train, is_predict):
+        #     return MismatchKernel.load_sparse_matrix(self.k, self.m, self.n, is_train, is_predict)
         return self.get_kernel_matrix(X1, X2, self.k, self.m, self.n, allow_kernel_saving, is_train, is_predict)
