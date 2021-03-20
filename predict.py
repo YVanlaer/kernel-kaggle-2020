@@ -3,11 +3,11 @@ import pandas as pd
 from time import time
 
 from dataset import Dataset
-from estimators import KernelSVMEstimator
+from estimators import KernelSVMEstimator, KernelRREstimator
 
 
 # Predict
-def predict(lambdas, kernels):
+def predict(lambdas, kernels, estimator):
     assert len(lambdas) == 3
     assert len(kernels) == 3
 
@@ -15,21 +15,30 @@ def predict(lambdas, kernels):
 
     print('Pred 1')
     ds = Dataset(k=0)
-    est1 = KernelSVMEstimator(lbd=lambdas[0], kernel=kernels[0])
+    if estimator == 'ksvm':
+        est1 = KernelSVMEstimator(lbd=lambdas[0], kernel=kernels[0])
+    elif estimator == 'krr':
+        est1 = KernelRREstimator(lbd=lambdas[0], kernel=kernels[0])
     est1.fit(ds.X, ds.y)
     y_pred1 = est1.predict(ds.X_test)
     y_pred1 = pd.Series(y_pred1, index=ds.X_test.index, name='Bound')
 
     print('Pred 2')
     ds = Dataset(k=1)
-    est2 = KernelSVMEstimator(lbd=lambdas[1], kernel=kernels[1])
+    if estimator == 'ksvm':
+        est2 = KernelSVMEstimator(lbd=lambdas[1], kernel=kernels[1])
+    elif estimator == 'krr':
+        est2 = KernelRREstimator(lbd=lambdas[1], kernel=kernels[1])
     est2.fit(ds.X, ds.y)
     y_pred2 = est2.predict(ds.X_test)
     y_pred2 = pd.Series(y_pred2, index=ds.X_test.index, name='Bound')
 
     print('Pred 3')
     ds = Dataset(k=2)
-    est3 = KernelSVMEstimator(lbd=lambdas[2], kernel=kernels[2])
+    if estimator == 'ksvm':
+        est3 = KernelSVMEstimator(lbd=lambdas[2], kernel=kernels[2])
+    elif estimator == 'krr':
+        est3 = KernelRREstimator(lbd=lambdas[2], kernel=kernels[2])
     est3.fit(ds.X, ds.y)
     y_pred3 = est3.predict(ds.X_test)
     y_pred3 = pd.Series(y_pred3, index=ds.X_test.index, name='Bound')

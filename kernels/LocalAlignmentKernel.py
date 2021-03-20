@@ -27,8 +27,8 @@ class LocalAlignmentKernel(BaseKernel):
         -----------
             beta : int
                 Parameter of the exponential
-            d: 
-            e: 
+            d:
+            e:
             n : int
                 Size of the alphabet in the sequence. 4 for DNA sequence.
 
@@ -121,7 +121,7 @@ class LocalAlignmentKernel(BaseKernel):
     #     for i in range(len(sequence) - k + 1):
     #         subseq = int_sequence[i:i+k]
     #         all_mismatches_sequences = get_all_mismatches(subseq, m, n)
-            
+
     #         for subseq_mismatch in all_mismatches_sequences:
     #             idx = tuple(int(s) for s in tuple(subseq_mismatch))
     #             idx = np.ravel_multi_index(idx, idx_shape)
@@ -139,7 +139,7 @@ class LocalAlignmentKernel(BaseKernel):
         X2 = scipy.sparse.dok_matrix(kernel_shape, dtype=float)
         Y2 = scipy.sparse.dok_matrix(kernel_shape, dtype=float)
         M = scipy.sparse.dok_matrix(kernel_shape, dtype=float)
-        
+
         for idx1, seq1 in tqdm(enumerate(seqs_X1), total=len(seqs_X1)):
             for idx2, seq2 in tqdm(enumerate(seqs_X2), total=len(seqs_X2)):
                 self.S = scipy.sparse.dok_matrix((len(seq1) + 1, len(seq2) + 1), dtype=float)
@@ -152,14 +152,14 @@ class LocalAlignmentKernel(BaseKernel):
                 for i1, char1 in enumerate(seq1):
                     for i2, char2 in enumerate(seq2):
                         self.S[i1, i2] = 1 if char1 == char2 else 0
-                        
+
                 X2[idx1, idx2] = self.get_X2(len(seq1), len(seq2))
                 Y2[idx1, idx2] = self.get_Y2(len(seq1), len(seq2))
                 M[idx1, idx2] = self.get_M(len(seq1), len(seq2))
 
         K = 1 + X2 + Y2 + M
         K = K.tocsc()
-        
+
         if allow_kernel_saving:
             LocalAlignmentKernel.save_sparse_matrix(K, self.beta, self.d, self.e)
 
@@ -192,7 +192,7 @@ class LocalAlignmentKernel(BaseKernel):
         print("Kernel loaded.")
         return K
 
-    def __call__(self, X1, X2, allow_file_loading=True, allow_kernel_saving=True):
+    def __call__(self, X1, X2, allow_file_loading=True, allow_kernel_saving=True, is_train=False, is_predict=False):
         """Create a kernel matrix given inputs."""
         if allow_file_loading and LocalAlignmentKernel.check_exists_sparse_matrix_file_name(self.beta, self.d, self.e):
             return LocalAlignmentKernel.load_sparse_matrix(self.beta, self.d, self.e)
