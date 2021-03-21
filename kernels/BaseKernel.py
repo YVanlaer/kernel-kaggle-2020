@@ -6,7 +6,7 @@ class BaseKernel(ABC):
     """Abstract class for creating kernels."""
 
     @abstractmethod
-    def __call__(self, X1, X2):
+    def __call__(self, X1, X2, is_train=False, is_predict=False):
         """Create a kernel matrix given inputs."""
         pass
 

@@ -76,7 +76,7 @@ class DTWKernel(BaseKernel):
         print(f'Retrieving DTW matrix for hash {h}', end='\t')
         return self.dtw_matrices.get(h, None)
 
-    def __call__(self, X1, X2):
+    def __call__(self, X1, X2, is_train=False, is_predict=False):
         print(f'Keys in dtw matrices: {len(self.dtw_matrices.keys())}')
         # Check if kernel matrix has already been computed
         X1_ = self.sequence_to_timeseries(X1, self.encoding)
