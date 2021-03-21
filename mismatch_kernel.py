@@ -17,15 +17,17 @@ def validate(args):
     for k in [0, 1, 2]:
         ds = Dataset(k=k)
         if k == 0:
-            kernel = MismatchKernel(k=11, m=1)
+            kernel = MismatchKernel(k=12, m=1)
         elif k == 1:
             kernel = MismatchKernel(k=10, m=1)
         else:
             kernel = MismatchKernel(k=11, m=1)
+
         if args.estimator == 'ksvm':
             est = KernelSVMEstimator(lbd=1e-6, kernel=kernel)
         elif args.estimator == 'krr':
             est = KernelRREstimator(lbd=1e-6, kernel=kernel)
+
 
         X_train, X_val, y_train, y_val = train_test_split(ds.X, ds.y,
                                                         test_size=0.2,
@@ -48,19 +50,21 @@ def grid_search(args):
         estimator = KernelRRstimator(lbd=1e-6, kernel=MismatchKernel(k=3, m=1))
     kernels = []
 
-    for k in range(4, 8):  #[5, 6, 7, 8]:
-        for m in range(1, 4):
-            kernels.append(MismatchKernel(k=k, m=m))
+    for k in range(8, 13): #12):  #[5, 6, 7, 8]:
+    #     for m in range(1, 4):
+    #         kernels.append(MismatchKernel(k=k, m=m))
+        kernels.append(MismatchKernel(k=k, m=1))
 
     param_grid = {
-        'lbd': [1e-3],  #np.logspace(-6, -3, 2),
+        # 'lbd': np.logspace(-6, -2, 5),
+        'lbd': [1e-3],
         'kernel': kernels,
     }
     # cv = ShuffleSplit(n_splits=5, random_state=0, test_size=0.2)
     cv = KFold(n_splits=5)
 
     with joblib.parallel_backend(backend='loky'):
-        gscv = GridSearchCV(estimator, param_grid=param_grid, n_jobs=4, cv=cv,
+        gscv = GridSearchCV(estimator, param_grid=param_grid, n_jobs=10, cv=cv,
                             refit=True, verbose=10, scoring='accuracy')
 
         gscv.fit(ds.X, ds.y)
@@ -72,11 +76,11 @@ def grid_search(args):
 
 # Predict
 def get_predictions(args):
-    lambdas = [1e-3, 1e-3, 1e-3]
+    lambdas = [1e-6, 1e-6, 1e-6]
     kernels = [
-        MismatchKernel(k=11, m=0),
-        MismatchKernel(k=7, m=1),
-        MismatchKernel(k=10, m=0),
+        MismatchKernel(k=12, m=1),
+        MismatchKernel(k=10, m=1),
+        MismatchKernel(k=11, m=1),
     ]
     predict(lambdas, kernels, args.estimator)
 
