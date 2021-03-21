@@ -47,7 +47,7 @@ def grid_search(args):
     if args.estimator == 'ksvm':
         estimator = KernelSVMEstimator(lbd=1e-6, kernel=MismatchKernel(k=3, m=1))
     elif args.estimator == 'krr':
-        estimator = KernelRRstimator(lbd=1e-6, kernel=MismatchKernel(k=3, m=1))
+        estimator = KernelRREstimator(lbd=1e-6, kernel=MismatchKernel(k=3, m=1))
     kernels = []
 
     for k in range(8, 13): #12):  #[5, 6, 7, 8]:
