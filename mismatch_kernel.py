@@ -16,10 +16,16 @@ from predict import predict
 def validate(args):
     for k in [0, 1, 2]:
         ds = Dataset(k=k)
+        if k == 0:
+            kernel = MismatchKernel(k=11, m=1)
+        elif k == 1:
+            kernel = MismatchKernel(k=10, m=1)
+        else:
+            kernel = MismatchKernel(k=11, m=1)
         if args.estimator == 'ksvm':
-            est = KernelSVMEstimator(lbd=1e-6, kernel=MismatchKernel(k=7, m=1))
+            est = KernelSVMEstimator(lbd=1e-6, kernel=kernel)
         elif args.estimator == 'krr':
-            est = KernelRREstimator(lbd=1e-6, kernel=MismatchKernel(k=7, m=1))
+            est = KernelRREstimator(lbd=1e-6, kernel=kernel)
 
         X_train, X_val, y_train, y_val = train_test_split(ds.X, ds.y,
                                                         test_size=0.2,

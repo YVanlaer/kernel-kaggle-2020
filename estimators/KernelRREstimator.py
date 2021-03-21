@@ -60,7 +60,7 @@ class KernelRREstimator(BaseEstimator):
         y = self._transform_labels(y)
         y = np.array(y)
 
-        objective = cp.Minimize(1/n * (cp.quad_form(alpha, K @ K) - 2 * y.T @ K @ alpha + y.T @ y) + self.lbd*cp.quad_form(alpha, K))
+        objective = cp.Minimize(1/n * (cp.quad_form(K @ alpha - y, np.identity(n))) + self.lbd*cp.quad_form(alpha, K))
 
         problem = cp.Problem(objective)
         problem.solve()
