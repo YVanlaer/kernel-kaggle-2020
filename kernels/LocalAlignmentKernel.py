@@ -44,6 +44,7 @@ memory = Memory('joblib_cache/', verbose=0)
 #   func.__doc__ = g.__doc__
 #   return func
 
+
 def get_default_computation_matrix(h, w):
     # Depth of 2: depth 0 for value, depth 1 for computed or not
     M = np.zeros((h, w, 2))
@@ -51,30 +52,44 @@ def get_default_computation_matrix(h, w):
     M[:, 0, 1] = 1
     return M
 
-#@jit
-def dynamic_compute(S, seq1, seq2, beta, dc, ec):
-    n1, n2 = S.shape[0], S.shape[1]
+# @jit
+
+
+def dynamic_compute(S, seq1, seq2, beta, d, e):
+    n1, n2 = len(seq1), len(seq2)
     M = np.zeros((n1, n2))
-    X = np.zeros((n1, n2))
-    Y = np.zeros((n1, n2))
-    X2 = np.zeros((n1, n2))
-    Y2 = np.zeros((n1, n2))
-    for d in range(2, n1 + n2 - 1):
-        i, j = d - 1, 1
-        if d > n1:
-            i, j = n1 - 1, j + d - n1
+    X, Y = np.zeros((n1, n2)), np.zeros((n1, n2))
+    X2, Y2 = np.zeros((n1, n2)), np.zeros((n1, n2))
+
+    for diag_idx in range(2, n1 + n2 - 1):
+        i, j = diag_idx - 1, 1
+        if diag_idx > n1:
+            i, j = n1 - 1, j + diag_idx - n1
+
         while j < n2 and i >= 1:
-            M[i,j] = np.exp(beta * S[int(seq1[i]),int(seq2[j])]) * (1 + X[i - 1, j - 1] + Y[i - 1, j - 1] + M[i - 1, j - 1])
-            X[i,j] = np.exp(beta * dc) * M[i - 1, j] + np.exp(beta * ec) * X[i - 1, j]
-            Y[i,j] = np.exp(beta * dc) * (M[i, j - 1] + X[i, j - 1]) + np.exp(beta * ec) * Y[i, j - 1]
-            X2[i,j] = M[i - 1, j] + X2[i - 1, j]
-            Y2[i,j] = M[i, j - 1] + X2[i, j - 1] + Y2[i, j - 1]
+            x1_i = int(seq1[i])
+            y2_j = int(seq2[j])
+
+            M[i, j] = np.exp(beta * S[x1_i, y2_j]) * \
+                (1 + X[i - 1, j - 1] + Y[i - 1, j - 1] + M[i - 1, j - 1])
+
+            X[i, j] = np.exp(beta * d) * M[i - 1, j] + \
+                np.exp(beta * e) * X[i - 1, j]
+
+            Y[i, j] = np.exp(beta * d) * (M[i, j - 1] +
+                                          X[i, j - 1]) + np.exp(beta * e) * Y[i, j - 1]
+
+            X2[i, j] = M[i - 1, j] + X2[i - 1, j]
+            Y2[i, j] = M[i, j - 1] + X2[i, j - 1] + Y2[i, j - 1]
 
             j += 1
             i -= 1
-    return X2[-1,-1], Y2[-1,-1], M[-1,-1]
 
-#@jitclass([('beta', float32), ('d', float32), ('e', float32), ('n', float32)])
+    return X2[-1, -1], Y2[-1, -1], M[-1, -1]
+
+# @jitclass([('beta', float32), ('d', float32), ('e', float32), ('n', float32)])
+
+
 class LocalAlignmentKernel(BaseKernel):
     """Implement the (beta)-local alignment kernel."""
 
@@ -109,7 +124,7 @@ class LocalAlignmentKernel(BaseKernel):
 
         return int_sequence
 
-    #@tail_call_optimized
+    # @tail_call_optimized
     # def get_M(self, i, j):
     #     if i == 0 or j == 0:
     #         return 0
@@ -192,11 +207,12 @@ class LocalAlignmentKernel(BaseKernel):
 
     #     return count.tocsc()
 
-
     def get_kernel_matrix(self, X1, X2, allow_kernel_saving=True):
         """May seem redundant with __call__ but is necessary for caching the result"""
-        seqs_X1 = [LocalAlignmentKernel.sequence_to_int_sequence(sequence) for sequence in X1]
-        seqs_X2 = [LocalAlignmentKernel.sequence_to_int_sequence(sequence) for sequence in X2]
+        seqs_X1 = [LocalAlignmentKernel.sequence_to_int_sequence(
+            sequence) for sequence in X1]
+        seqs_X2 = [LocalAlignmentKernel.sequence_to_int_sequence(
+            sequence) for sequence in X2]
 
         kernel_shape = (len(seqs_X1), len(seqs_X2))
         X2 = scipy.sparse.dok_matrix(kernel_shape, dtype=float)
@@ -205,7 +221,8 @@ class LocalAlignmentKernel(BaseKernel):
 
         alphabet_size = int(max(max([list(seq) for seq in seqs_X1]))) + 1
 
-        S = np.zeros((alphabet_size,alphabet_size)) + 1 - np.identity(alphabet_size)
+        S = np.ones((alphabet_size, alphabet_size)) - \
+            np.identity(alphabet_size)
 
         for idx1, seq1 in tqdm(enumerate(seqs_X1), total=len(seqs_X1)):
             for idx2, seq2 in enumerate(seqs_X2):
@@ -213,7 +230,8 @@ class LocalAlignmentKernel(BaseKernel):
                 # seq_2_repeated = np.tile(np.array(list(seq2)), (len(seq1), 1))
                 # S = seq_1_repeated == seq_2_repeated
 
-                x2,y2,m = dynamic_compute(S, seq1, seq2, self.beta, self.d, self.e)
+                x2, y2, m = dynamic_compute(
+                    S, seq1, seq2, self.beta, self.d, self.e)
 
                 X2[idx1, idx2] = x2
                 Y2[idx1, idx2] = y2
@@ -223,7 +241,8 @@ class LocalAlignmentKernel(BaseKernel):
         K = K.tocsc()
 
         if allow_kernel_saving:
-            LocalAlignmentKernel.save_sparse_matrix(K, self.beta, self.d, self.e)
+            LocalAlignmentKernel.save_sparse_matrix(
+                K, self.beta, self.d, self.e)
 
         return K
 
@@ -237,18 +256,21 @@ class LocalAlignmentKernel(BaseKernel):
 
     @staticmethod
     def check_exists_sparse_matrix_file_name(beta, d, e):
-        file_name = LocalAlignmentKernel.get_sparse_matrix_file_name(beta, d, e)
+        file_name = LocalAlignmentKernel.get_sparse_matrix_file_name(
+            beta, d, e)
         return os.path.exists(file_name)
 
     @staticmethod
     def save_sparse_matrix(K, beta, d, e):
-        matrix_file_name = LocalAlignmentKernel.get_sparse_matrix_file_name(beta, d, e)
+        matrix_file_name = LocalAlignmentKernel.get_sparse_matrix_file_name(
+            beta, d, e)
         scipy.sparse.save_npz(matrix_file_name, K)
 
     @staticmethod
     def load_sparse_matrix(beta, d, e):
         print("Loading sparse kernel...")
-        matrix_file_name = LocalAlignmentKernel.get_sparse_matrix_file_name(beta, d, e)
+        matrix_file_name = LocalAlignmentKernel.get_sparse_matrix_file_name(
+            beta, d, e)
         K = scipy.sparse.load_npz(matrix_file_name)
         print("Kernel loaded.")
         return K
