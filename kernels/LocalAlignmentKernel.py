@@ -45,12 +45,16 @@ memory = Memory('joblib_cache/', verbose=0)
 #   return func
 
 
-def get_default_computation_matrix(h, w):
-    # Depth of 2: depth 0 for value, depth 1 for computed or not
-    M = np.zeros((h, w, 2))
-    M[0, :, 1] = 1
-    M[:, 0, 1] = 1
-    return M
+
+# def get_default_computation_matrix(h, w):
+#     # Depth of 2: depth 0 for value, depth 1 for computed or not
+#     M = np.zeros((h, w, 2))
+#     M[0, :, 1] = 1
+#     M[:, 0, 1] = 1
+#     return M
+
+def blosum62():
+    return np.array([[4, 0, 0, 0], [0, 9, -3, -1], [0, -3, 6, -2], [0, -1, -2, 5]])
 
 
 @jit
@@ -223,9 +227,8 @@ class LocalAlignmentKernel(BaseKernel):
 
         alphabet_size = int(max(max([list(seq) for seq in seqs_X1]))) + 1
 
-        # S = np.ones((alphabet_size, alphabet_size)) - \
-        #     np.identity(alphabet_size)
-        S = np.identity(alphabet_size)
+        # S = np.identity(alphabet_size)
+        S = blosum62()
 
         for idx1, seq1 in tqdm(enumerate(seqs_X1), total=len(seqs_X1)):
             for idx2, seq2 in enumerate(seqs_X2):
