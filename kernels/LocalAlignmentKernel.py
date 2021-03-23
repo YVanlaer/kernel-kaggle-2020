@@ -244,14 +244,9 @@ class LocalAlignmentKernel(BaseKernel):
         K = K.tocsc()
         K.data = np.log(K.data) / beta
 
-        eig_values = scipy.sparse.linalg.eigsh(K, k=6)[0]
+        eig_values = scipy.sparse.linalg.eigsh(K, k=1, which='SM')[0]
         smallest_eig_value = eig_values[0]
-        print('eigenvalues before substraction', eig_values)
-        print('smallest eigenvalues before substraction', smallest_eig_value)
-        # K -= (smallest_eig_value - 1e-10) * scipy.sparse.identity(len(seqs_X1))
-        print('eigenvalues before substraction',
-              scipy.sparse.linalg.eigsh(K, k=6))
-
+        K -= (smallest_eig_value - 1e-10) * scipy.sparse.identity(len(seqs_X1))
         # if allow_kernel_saving:
         #     LocalAlignmentKernel.save_sparse_matrix(K, beta, d, e)
 

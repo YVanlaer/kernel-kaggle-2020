@@ -17,5 +17,5 @@ for k in [0, 1, 2]:
     est.fit(X_train[:10], y_train[:10])
     y_pred = est.predict(X_val[:10])
 
-    acc = (y_pred == y_val).sum() / len(y_val)
+    acc = (y_pred == y_val[:10]).sum() / len(y_val[:10])
     print(f'Accuracy dataset {k} is: {acc:.3g}')
