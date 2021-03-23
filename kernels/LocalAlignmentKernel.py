@@ -109,7 +109,7 @@ class LocalAlignmentKernel(BaseKernel):
         self.d = d
         self.e = e
         self.n = n
-        #self.get_kernel_matrix = memory.cache(self.get_kernel_matrix)
+        self.get_kernel_matrix = memory.cache(self.get_kernel_matrix)
 
     @staticmethod
     def sequence_to_int_sequence(sequence):
@@ -206,7 +206,8 @@ class LocalAlignmentKernel(BaseKernel):
 
     #     return count.tocsc()
 
-    def get_kernel_matrix(self, X1, X2, allow_kernel_saving=True):
+    @staticmethod
+    def get_kernel_matrix(X1, X2, beta, d, e):
         """May seem redundant with __call__ but is necessary for caching the result"""
         seqs_X1 = [LocalAlignmentKernel.sequence_to_int_sequence(
             sequence) for sequence in X1]
@@ -231,7 +232,7 @@ class LocalAlignmentKernel(BaseKernel):
                 # S = seq_1_repeated == seq_2_repeated
 
                 x2, y2, m = dynamic_compute(
-                    S, seq1, seq2, self.beta, self.d, self.e)
+                    S, seq1, seq2, beta, d, e)
 
                 X2[idx1, idx2] = x2
                 Y2[idx1, idx2] = y2
@@ -239,7 +240,7 @@ class LocalAlignmentKernel(BaseKernel):
 
         K = 1 + X2 + Y2 + M
         K = K.tocsc()
-        K.data = np.log(K.data) / self.beta
+        K.data = np.log(K.data) / beta
 
         eig_values = scipy.sparse.linalg.eigsh(K, k=6)[0]
         smallest_eig_value = eig_values[0]
@@ -249,43 +250,42 @@ class LocalAlignmentKernel(BaseKernel):
         print('eigenvalues before substraction',
               scipy.sparse.linalg.eigsh(K, k=6))
 
-        if allow_kernel_saving:
-            LocalAlignmentKernel.save_sparse_matrix(
-                K, self.beta, self.d, self.e)
+        # if allow_kernel_saving:
+        #     LocalAlignmentKernel.save_sparse_matrix(K, beta, d, e)
 
         return K
 
-    @staticmethod
-    def get_sparse_matrix_file_name(beta, d, e):
-        parent_folder = "sparse_matrices/local_alignment_kernels"
-        file_name = f"{parent_folder}/local_alignment_beta_{beta}_d_{d}_e_{e}.npz"
-        if not os.path.exists(parent_folder):
-            os.makedirs(parent_folder)
-        return file_name
+    # @staticmethod
+    # def get_sparse_matrix_file_name(beta, d, e):
+    #     parent_folder = "sparse_matrices/local_alignment_kernels"
+    #     file_name = f"{parent_folder}/local_alignment_beta_{beta}_d_{d}_e_{e}.npz"
+    #     if not os.path.exists(parent_folder):
+    #         os.makedirs(parent_folder)
+    #     return file_name
 
-    @staticmethod
-    def check_exists_sparse_matrix_file_name(beta, d, e):
-        file_name = LocalAlignmentKernel.get_sparse_matrix_file_name(
-            beta, d, e)
-        return os.path.exists(file_name)
+    # @staticmethod
+    # def check_exists_sparse_matrix_file_name(beta, d, e):
+    #     file_name = LocalAlignmentKernel.get_sparse_matrix_file_name(
+    #         beta, d, e)
+    #     return os.path.exists(file_name)
 
-    @staticmethod
-    def save_sparse_matrix(K, beta, d, e):
-        matrix_file_name = LocalAlignmentKernel.get_sparse_matrix_file_name(
-            beta, d, e)
-        scipy.sparse.save_npz(matrix_file_name, K)
+    # @staticmethod
+    # def save_sparse_matrix(K, beta, d, e):
+    #     matrix_file_name = LocalAlignmentKernel.get_sparse_matrix_file_name(
+    #         beta, d, e)
+    #     scipy.sparse.save_npz(matrix_file_name, K)
 
-    @staticmethod
-    def load_sparse_matrix(beta, d, e):
-        print("Loading sparse kernel...")
-        matrix_file_name = LocalAlignmentKernel.get_sparse_matrix_file_name(
-            beta, d, e)
-        K = scipy.sparse.load_npz(matrix_file_name)
-        print("Kernel loaded.")
-        return K
+    # @staticmethod
+    # def load_sparse_matrix(beta, d, e):
+    #     print("Loading sparse kernel...")
+    #     matrix_file_name = LocalAlignmentKernel.get_sparse_matrix_file_name(
+    #         beta, d, e)
+    #     K = scipy.sparse.load_npz(matrix_file_name)
+    #     print("Kernel loaded.")
+    #     return K
 
-    def __call__(self, X1, X2, allow_file_loading=True, allow_kernel_saving=True, is_train=False, is_predict=False):
+    def __call__(self, X1, X2):
         """Create a kernel matrix given inputs."""
         # if allow_file_loading and LocalAlignmentKernel.check_exists_sparse_matrix_file_name(self.beta, self.d, self.e):
         #    return LocalAlignmentKernel.load_sparse_matrix(self.beta, self.d, self.e)
-        return self.get_kernel_matrix(X1, X2, allow_kernel_saving)
+        return self.get_kernel_matrix(X1, X2, self.beta, self.d, self.e)
