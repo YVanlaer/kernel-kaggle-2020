@@ -52,9 +52,8 @@ def get_default_computation_matrix(h, w):
     M[:, 0, 1] = 1
     return M
 
+
 # @jit
-
-
 def dynamic_compute(S, seq1, seq2, beta, d, e):
     n1, n2 = len(seq1), len(seq2)
     M = np.zeros((n1, n2))
@@ -221,8 +220,9 @@ class LocalAlignmentKernel(BaseKernel):
 
         alphabet_size = int(max(max([list(seq) for seq in seqs_X1]))) + 1
 
-        S = np.ones((alphabet_size, alphabet_size)) - \
-            np.identity(alphabet_size)
+        # S = np.ones((alphabet_size, alphabet_size)) - \
+        #     np.identity(alphabet_size)
+        S = np.identity(alphabet_size)
 
         for idx1, seq1 in tqdm(enumerate(seqs_X1), total=len(seqs_X1)):
             for idx2, seq2 in enumerate(seqs_X2):
@@ -239,6 +239,15 @@ class LocalAlignmentKernel(BaseKernel):
 
         K = 1 + X2 + Y2 + M
         K = K.tocsc()
+        K.data = np.log(K.data) / self.beta
+
+        eig_values = scipy.sparse.linalg.eigsh(K, k=6)[0]
+        smallest_eig_value = eig_values[0]
+        print('eigenvalues before substraction', eig_values)
+        print('smallest eigenvalues before substraction', smallest_eig_value)
+        # K -= (smallest_eig_value - 1e-10) * scipy.sparse.identity(len(seqs_X1))
+        print('eigenvalues before substraction',
+              scipy.sparse.linalg.eigsh(K, k=6))
 
         if allow_kernel_saving:
             LocalAlignmentKernel.save_sparse_matrix(
