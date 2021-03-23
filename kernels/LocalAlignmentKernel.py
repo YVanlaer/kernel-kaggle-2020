@@ -53,7 +53,7 @@ def get_default_computation_matrix(h, w):
     return M
 
 
-# @jit
+@jit
 def dynamic_compute(S, seq1, seq2, beta, d, e):
     n1, n2 = len(seq1), len(seq2)
     M = np.zeros((n1, n2))
@@ -65,9 +65,9 @@ def dynamic_compute(S, seq1, seq2, beta, d, e):
         if diag_idx > n1:
             i, j = n1 - 1, j + diag_idx - n1
 
-        while j < n2 and i >= 1:
-            x1_i = int(seq1[i])
-            y2_j = int(seq2[j])
+        while (j < n2 and i >= 1):
+            x1_i = seq1[i]
+            y2_j = seq2[j]
 
             M[i, j] = np.exp(beta * S[x1_i, y2_j]) * \
                 (1 + X[i - 1, j - 1] + Y[i - 1, j - 1] + M[i - 1, j - 1])
@@ -121,7 +121,9 @@ class LocalAlignmentKernel(BaseKernel):
         for i, letter in enumerate(alphabet):
             int_sequence = int_sequence.replace(letter, str(i))
 
-        return int_sequence
+        int_sequence_array = np.array(list(map(int, int_sequence)))
+
+        return int_sequence_array
 
     # @tail_call_optimized
     # def get_M(self, i, j):
