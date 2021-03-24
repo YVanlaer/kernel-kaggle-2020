@@ -84,7 +84,8 @@ class MismatchKernel(BaseKernel):
         return count.tocsc()
 
     @staticmethod
-    def get_kernel_matrix(X1, X2, k, m, n, allow_kernel_saving=True, is_train=False, is_predict=False):
+    # def get_kernel_matrix(X1, X2, k, m, n, allow_kernel_saving=True, is_train=False, is_predict=False):
+    def get_kernel_matrix(X1, X2, k, m, n):
         """May seem redundant with __call__ but is necessary for caching the result"""
         phis1 = [MismatchKernel.phi(sequence, k, m, n) for sequence in X1]
         phis2 = [MismatchKernel.phi(sequence, k, m, n) for sequence in X2]
@@ -94,8 +95,8 @@ class MismatchKernel(BaseKernel):
 
         K = phi1.transpose().dot(phi2)
 
-        if allow_kernel_saving:
-            MismatchKernel.save_sparse_matrix(K, k, m, n, is_train, is_predict)
+        # if allow_kernel_saving:
+        #     MismatchKernel.save_sparse_matrix(K, k, m, n, is_train, is_predict)
 
         return K
 
@@ -133,8 +134,10 @@ class MismatchKernel(BaseKernel):
         print("Kernel loaded.")
         return K
 
-    def __call__(self, X1, X2, allow_file_loading=True, allow_kernel_saving=True, is_train=False, is_predict=False):
+    # def __call__(self, X1, X2, allow_file_loading=True, allow_kernel_saving=True, is_train=False, is_predict=False):
+    def __call__(self, X1, X2):
         """Create a kernel matrix given inputs."""
         # if allow_file_loading and MismatchKernel.check_exists_sparse_matrix_file_name(self.k, self.m, self.n, is_train, is_predict):
         #     return MismatchKernel.load_sparse_matrix(self.k, self.m, self.n, is_train, is_predict)
-        return self.get_kernel_matrix(X1, X2, self.k, self.m, self.n, allow_kernel_saving, is_train, is_predict)
+        # return self.get_kernel_matrix(X1, X2, self.k, self.m, self.n, allow_kernel_saving, is_train, is_predict)
+        return self.get_kernel_matrix(X1, X2, self.k, self.m, self.n)

@@ -1,6 +1,7 @@
 """Predict with ensembling method (basic voting)."""
 import pandas as pd
 from time import time
+import numpy as np
 
 from dataset import Dataset
 
@@ -8,11 +9,11 @@ from dataset import Dataset
 def vote_predictions(predictions_list):
     all_predictions = np.array(predictions_list)    # Shape num_predictions x shape of each prediction
     num_samples = all_predictions.shape[1]
-    return np.array([np.argmax(np.bincount(all_predictions[:, idx])) for idx in range(num_samples)])
+    return np.array([np.argmax(np.bincount(all_predictions[:, idx].astype(int))) for idx in range(num_samples)])
 
 
 # Predict with ensembling method
-def ensembling_prediction(estimators1, estimators2, estimators3):
+def ensembling_prediction(estimators1, estimators2, estimators3, csv_name='y_pred.csv'):
     start_time = time()
 
     print('Pred 1')
@@ -35,6 +36,6 @@ def ensembling_prediction(estimators1, estimators2, estimators3):
 
     y_pred = pd.concat([y_pred1, y_pred2, y_pred3], axis=0, verify_integrity=True)
     y_pred = y_pred.astype(int)
-    y_pred.to_csv('y_pred.csv')
+    y_pred.to_csv(csv_name)
 
     print("Took {:.2f} seconds to compute the predictions.".format(time() - start_time))
