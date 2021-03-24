@@ -19,3 +19,8 @@ for k in [0, 1, 2]:
 
     acc = (y_pred == y_val).sum() / len(y_val)
     print(f'Accuracy dataset {k} is: {acc:.3g}')
+
+# from predict import predict
+# kernel = [LocalAlignmentKernel(beta=0.5, d=11, e=1)] * 3
+# lambas = [1e-6] * 3
+# predict(lambas, kernel, 'ksvm')

@@ -56,6 +56,9 @@ memory = Memory('joblib_cache/', verbose=0)
 def blosum62():
     return np.array([[4, 0, 0, 0], [0, 9, -3, -1], [0, -3, 6, -2], [0, -1, -2, 5]])
 
+def blast():
+    return np.zeros((4,4)) - 3 + 4 * np.identity(4)
+
 
 @jit
 def dynamic_compute(S, seq1, seq2, beta, d, e):
@@ -72,6 +75,17 @@ def dynamic_compute(S, seq1, seq2, beta, d, e):
         while (j < n2 and i >= 1):
             x1_i = seq1[i]
             y2_j = seq2[j]
+
+            # M[i, j] = beta * S[x1_i, y2_j] + \
+            #     X[i -1, j - 1] + Y[i - 1, j - 1] + M[i - 1, j - 1] + np.log(10**-323 + np.exp(-X[i - 1, j - 1] - Y[i - 1, j - 1] - M[i - 1, j - 1]) + np.exp(-Y[i - 1, j - 1] - M[i - 1, j - 1]) + np.exp(-X[i - 1, j - 1] - M[i - 1, j - 1]) + np.exp(-X[i - 1, j - 1] - Y[i - 1, j - 1]))
+            #
+            # X[i, j] = beta * d + M[i - 1, j] + beta * e + X[i - 1, j] + np.log(10**-323 + np.exp(-beta * d - M[i - 1, j]) + \
+            #     np.exp(-beta * e - X[i - 1, j]))
+            #
+            # Y[i, j] = beta * d + M[i, j - 1] + X[i, j - 1] + beta * e + Y[i, j - 1] + np.log(10**-323 + np.exp(-beta * e - Y[i, j- 1]) * (np.exp(-M[i, j - 1]) + np.exp(-X[i, j - 1])) + np.exp(-beta * d - M[i, j - 1] - X[i, j - 1]))
+            #
+            # X2[i, j] = M[i - 1, j] + X2[i - 1, j] + np.log(10**-323 + np.exp(-M[i - 1, j]) + np.exp(-X2[i - 1, j]))
+            # Y2[i, j] = M[i, j - 1] + X2[i, j - 1] + Y2[i, j - 1] + np.log(10**-323 + np.exp(-X2[i, j - 1] - M[i, j - 1]) + np.exp(-X2[i, j - 1] - Y2[i, j - 1]) + np.exp(-Y2[i, j - 1] - M[i, j - 1]))
 
             M[i, j] = np.exp(beta * S[x1_i, y2_j]) * \
                 (1 + X[i - 1, j - 1] + Y[i - 1, j - 1] + M[i - 1, j - 1])
@@ -213,7 +227,7 @@ class LocalAlignmentKernel(BaseKernel):
     #     return count.tocsc()
 
     @staticmethod
-    def get_kernel_matrix(X1, X2, beta, d, e):
+    def get_kernel_matrix(X1, X2, beta, d, e, is_train=False, is_predict=False):
         """May seem redundant with __call__ but is necessary for caching the result"""
         seqs_X1 = [LocalAlignmentKernel.sequence_to_int_sequence(
             sequence) for sequence in X1]
@@ -221,14 +235,15 @@ class LocalAlignmentKernel(BaseKernel):
             sequence) for sequence in X2]
 
         kernel_shape = (len(seqs_X1), len(seqs_X2))
-        X2 = scipy.sparse.dok_matrix(kernel_shape, dtype=float)
-        Y2 = scipy.sparse.dok_matrix(kernel_shape, dtype=float)
-        M = scipy.sparse.dok_matrix(kernel_shape, dtype=float)
+        X2 = np.zeros(kernel_shape, dtype=float)
+        Y2 = np.zeros(kernel_shape, dtype=float)
+        M = np.zeros(kernel_shape, dtype=float)
 
         alphabet_size = int(max(max([list(seq) for seq in seqs_X1]))) + 1
 
         # S = np.identity(alphabet_size)
-        S = blosum62()
+        # S = blosum62()
+        S = blast()
 
         for idx1, seq1 in tqdm(enumerate(seqs_X1), total=len(seqs_X1)):
             for idx2, seq2 in enumerate(seqs_X2):
@@ -243,13 +258,17 @@ class LocalAlignmentKernel(BaseKernel):
                 Y2[idx1, idx2] = y2
                 M[idx1, idx2] = m
 
+        # K = X2 + Y2 + M + np.log(np.exp(-X2 - Y2 - M) + np.exp(-Y2 - M) + np.exp(-X2 - M) + np.exp(-X2 - Y2))
         K = 1 + X2 + Y2 + M
-        K = K.tocsc()
+        # K = K.tocsc()
+        # K.data = K.data / beta
         K.data = np.log(K.data) / beta
 
-        eig_values = scipy.sparse.linalg.eigsh(K, k=1, which='SM')[0]
-        smallest_eig_value = eig_values[0]
-        K -= (smallest_eig_value - 1e-10) * scipy.sparse.identity(len(seqs_X1))
+        if is_train:
+            eig_values = np.linalg.eigvalsh(K)
+            smallest_eig_value = eig_values[0]
+            if smallest_eig_value < 0:
+                K -= (smallest_eig_value - 1e-10) * np.identity(len(seqs_X1))
         # if allow_kernel_saving:
         #     LocalAlignmentKernel.save_sparse_matrix(K, beta, d, e)
 
@@ -284,8 +303,8 @@ class LocalAlignmentKernel(BaseKernel):
     #     print("Kernel loaded.")
     #     return K
 
-    def __call__(self, X1, X2):
+    def __call__(self, X1, X2, is_train=False, is_predict=False):
         """Create a kernel matrix given inputs."""
         # if allow_file_loading and LocalAlignmentKernel.check_exists_sparse_matrix_file_name(self.beta, self.d, self.e):
         #    return LocalAlignmentKernel.load_sparse_matrix(self.beta, self.d, self.e)
-        return self.get_kernel_matrix(X1, X2, self.beta, self.d, self.e)
+        return self.get_kernel_matrix(X1, X2, self.beta, self.d, self.e, is_train=is_train, is_predict=is_predict)
