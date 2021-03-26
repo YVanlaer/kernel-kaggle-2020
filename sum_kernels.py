@@ -7,7 +7,7 @@ from time import time
 import joblib
 
 from dataset import Dataset
-from kernels import MismatchKernel, SumKernels
+from kernels import MismatchKernel, SumKernels, LocalAlignmentKernel
 from estimators import KernelSVMEstimator, KernelRREstimator
 from predict import predict
 
@@ -80,8 +80,8 @@ def get_predictions(args):
 
     kernels = [
         SumKernels(kernels=[
-            MismatchKernel(k=12, m=1),
-            MismatchKernel(k=11, m=1)
+            MismatchKernel(k=10, m=1),
+            MismatchKernel(k=7, m=1)
         ]),
         SumKernels(kernels=[
             MismatchKernel(k=10, m=1),
@@ -89,7 +89,7 @@ def get_predictions(args):
         ]),
         SumKernels(kernels=[
             MismatchKernel(k=10, m=1),
-            MismatchKernel(k=11, m=1)
+            MismatchKernel(k=7, m=1)
         ]),
     ]
     predict(lambdas, kernels, args.estimator)

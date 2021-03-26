@@ -25,12 +25,12 @@ def get_all_mismatches(sequence, m, n):
                 get_all_mismatches(sequence[1:], m, n)
                )
         )
-        
+
         lower_mismatch_order_sequences = get_all_mismatches(sequence, m-1, n)
 
         all_sequences = [sequence] + replace_head_sequences + keep_head_sequences + lower_mismatch_order_sequences
         return list(set(all_sequences))
-    
+
 
 class MismatchKernel(BaseKernel):
     """Implement the (k,m)-mismatch kernel."""
@@ -75,7 +75,7 @@ class MismatchKernel(BaseKernel):
         for i in range(len(sequence) - k + 1):
             subseq = int_sequence[i:i+k]
             all_mismatches_sequences = get_all_mismatches(subseq, m, n)
-            
+
             for subseq_mismatch in all_mismatches_sequences:
                 idx = tuple(int(s) for s in tuple(subseq_mismatch))
                 idx = np.ravel_multi_index(idx, idx_shape)
@@ -135,7 +135,7 @@ class MismatchKernel(BaseKernel):
         return K
 
     # def __call__(self, X1, X2, allow_file_loading=True, allow_kernel_saving=True, is_train=False, is_predict=False):
-    def __call__(self, X1, X2):
+    def __call__(self, X1, X2, is_train = False, is_predict = False):
         """Create a kernel matrix given inputs."""
         # if allow_file_loading and MismatchKernel.check_exists_sparse_matrix_file_name(self.k, self.m, self.n, is_train, is_predict):
         #     return MismatchKernel.load_sparse_matrix(self.k, self.m, self.n, is_train, is_predict)

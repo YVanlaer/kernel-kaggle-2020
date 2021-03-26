@@ -72,6 +72,6 @@ class KernelRREstimator(BaseEstimator):
 
     def predict(self, X):
         K_test = self.kernel(self.X, X, is_predict=True)
-        y_pred = self.alpha@K_test
+        y_pred = np.squeeze(np.asarray(self.alpha@K_test)) # matrix to numpy array
         y_pred = self._inverse_transform_labels(y_pred)
         return y_pred

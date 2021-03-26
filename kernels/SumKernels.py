@@ -35,6 +35,6 @@ class SumKernels(BaseKernel):
         return K
 
 
-    def __call__(self, X1, X2):
+    def __call__(self, X1, X2, is_train = False, is_predict = False):
         """Create a kernel matrix which is a sum of other kernels given inputs."""
         return self.get_kernel_matrix(X1, X2, self.kernels)
