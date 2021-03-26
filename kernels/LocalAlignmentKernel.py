@@ -6,58 +6,19 @@ import sys
 from joblib import Memory
 from tqdm import tqdm
 from numba import jit
-#from numba import float32
-#from numba.experimental import jitclass
 
 from .BaseKernel import BaseKernel
 
 
 memory = Memory('joblib_cache/', verbose=0)
 
-# class TailRecurseException(BaseException):
-#   def __init__(self, args, kwargs):
-#     self.args = args
-#     self.kwargs = kwargs
-#
-# def tail_call_optimized(g):
-#   """
-#   This function decorates a function with tail call
-#   optimization. It does this by throwing an exception
-#   if it is it's own grandparent, and catching such
-#   exceptions to fake the tail call optimization.
-#
-#   This function fails if the decorated
-#   function recurses in a non-tail context.
-#   """
-#   def func(*args, **kwargs):
-#     f = sys._getframe()
-#     if f.f_back and f.f_back.f_back \
-#         and f.f_back.f_back.f_code == f.f_code:
-#       raise TailRecurseException(args, kwargs)
-#     else:
-#       while 1:
-#         try:
-#           return g(*args, **kwargs)
-#         except TailRecurseException as e:
-#           args = e.args
-#           kwargs = e.kwargs
-#   func.__doc__ = g.__doc__
-#   return func
-
-
-
-# def get_default_computation_matrix(h, w):
-#     # Depth of 2: depth 0 for value, depth 1 for computed or not
-#     M = np.zeros((h, w, 2))
-#     M[0, :, 1] = 1
-#     M[:, 0, 1] = 1
-#     return M
 
 def blosum62():
     return np.array([[4, 0, 0, 0], [0, 9, -3, -1], [0, -3, 6, -2], [0, -1, -2, 5]])
 
+
 def blast():
-    return np.zeros((4,4)) - 3 + 4 * np.identity(4)
+    return np.zeros((4, 4)) - 3 + 4 * np.identity(4)
 
 
 @jit
@@ -76,17 +37,6 @@ def dynamic_compute(S, seq1, seq2, beta, d, e):
             x1_i = seq1[i]
             y2_j = seq2[j]
 
-            # M[i, j] = beta * S[x1_i, y2_j] + \
-            #     X[i -1, j - 1] + Y[i - 1, j - 1] + M[i - 1, j - 1] + np.log(10**-323 + np.exp(-X[i - 1, j - 1] - Y[i - 1, j - 1] - M[i - 1, j - 1]) + np.exp(-Y[i - 1, j - 1] - M[i - 1, j - 1]) + np.exp(-X[i - 1, j - 1] - M[i - 1, j - 1]) + np.exp(-X[i - 1, j - 1] - Y[i - 1, j - 1]))
-            #
-            # X[i, j] = beta * d + M[i - 1, j] + beta * e + X[i - 1, j] + np.log(10**-323 + np.exp(-beta * d - M[i - 1, j]) + \
-            #     np.exp(-beta * e - X[i - 1, j]))
-            #
-            # Y[i, j] = beta * d + M[i, j - 1] + X[i, j - 1] + beta * e + Y[i, j - 1] + np.log(10**-323 + np.exp(-beta * e - Y[i, j- 1]) * (np.exp(-M[i, j - 1]) + np.exp(-X[i, j - 1])) + np.exp(-beta * d - M[i, j - 1] - X[i, j - 1]))
-            #
-            # X2[i, j] = M[i - 1, j] + X2[i - 1, j] + np.log(10**-323 + np.exp(-M[i - 1, j]) + np.exp(-X2[i - 1, j]))
-            # Y2[i, j] = M[i, j - 1] + X2[i, j - 1] + Y2[i, j - 1] + np.log(10**-323 + np.exp(-X2[i, j - 1] - M[i, j - 1]) + np.exp(-X2[i, j - 1] - Y2[i, j - 1]) + np.exp(-Y2[i, j - 1] - M[i, j - 1]))
-
             M[i, j] = np.exp(beta * S[x1_i, y2_j]) * \
                 (1 + X[i - 1, j - 1] + Y[i - 1, j - 1] + M[i - 1, j - 1])
 
@@ -103,8 +53,6 @@ def dynamic_compute(S, seq1, seq2, beta, d, e):
             i -= 1
 
     return X2[-1, -1], Y2[-1, -1], M[-1, -1]
-
-# @jitclass([('beta', float32), ('d', float32), ('e', float32), ('n', float32)])
 
 
 class LocalAlignmentKernel(BaseKernel):
@@ -143,89 +91,6 @@ class LocalAlignmentKernel(BaseKernel):
 
         return int_sequence_array
 
-    # @tail_call_optimized
-    # def get_M(self, i, j):
-    #     if i == 0 or j == 0:
-    #         return 0
-    #     elif self.M[i, j, 1] == 1:
-    #         return self.M[i, j, 0]
-    #     else:
-    #         long_term = 1 + self.get_X(i-1, j-1) + self.get_Y(i-1, j-1) + self.get_M(i-1, j-1)
-    #         M_term = np.exp(self.beta * self.S[i, j])
-    #         self.M[i, j, 0] = M_term
-    #         self.M[i, j, 1] = 1
-    #         return M_term
-    #
-    # #@tail_call_optimized
-    # def get_X(self, i, j):
-    #     if i == 0 or j == 0:
-    #         return 0
-    #     elif self.X[i, j, 1] == 1:
-    #         return self.X[i, j, 0]
-    #     else:
-    #         term_left = np.exp(self.beta * self.d) * self.get_M(i-1, j)
-    #         term_right = np.exp(self.beta * self.e) * self.get_X(i-1, j)
-    #         X_term = term_left + term_right
-    #         self.X[i, j, 0] = X_term
-    #         self.X[i, j, 1] = 1
-    #         return X_term
-    #
-    # #@tail_call_optimized
-    # def get_Y(self, i, j):
-    #     if i == 0 or j == 0:
-    #         return 0
-    #     elif self.Y[i, j, 1] == 1:
-    #         return self.Y[i, j, 0]
-    #     else:
-    #         term_left = np.exp(self.beta * self.d) * (self.get_M(i, j-1) + self.get_X(i, j-1))
-    #         term_right = np.exp(self.beta * self.e) * self.get_Y(i, j-1)
-    #         Y_term = term_left + term_right
-    #         self.Y[i, j, 0] = Y_term
-    #         self.Y[i, j, 1] = 1
-    #         return Y_term
-    #
-    # #@tail_call_optimized
-    # def get_X2(self, i, j):
-    #     if i == 0 or j == 0:
-    #         return 0
-    #     elif self.X2[i, j, 1] == 1:
-    #         return self.X2[i, j, 0]
-    #     else:
-    #         X2_term = self.get_M(i-1, j) + self.get_X2(i-1, j)
-    #         self.X2[i, j, 0] = X2_term
-    #         self.X2[i, j, 1] = 1
-    #         return X2_term
-    #
-    # #@tail_call_optimized
-    # def get_Y2(self, i, j):
-    #     if i == 0 or j == 0:
-    #         return 0
-    #     elif self.Y2[i, j, 1] == 1:
-    #         return self.Y2[i, j, 0]
-    #     else:
-    #         Y2_term = self.get_M(i, j-1) + self.get_X2(i, j-1) + self.get_Y2(i, j-1)
-    #         self.Y2[i, j, 0] = Y2_term
-    #         self.Y2[i, j, 1] = 1
-    #         return Y2_term
-
-    # @staticmethod
-    # def phi(sequence, k, m, n):
-    #     """Create the embedding of a sequence y counting the k-sequences."""
-    #     int_sequence = LocalAlignmentKernel.sequence_to_int_sequence(sequence)
-    #     count = scipy.sparse.dok_matrix((n**k, 1), dtype=int)
-    #     idx_shape = tuple(n for _ in range(k))
-
-    #     for i in range(len(sequence) - k + 1):
-    #         subseq = int_sequence[i:i+k]
-    #         all_mismatches_sequences = get_all_mismatches(subseq, m, n)
-
-    #         for subseq_mismatch in all_mismatches_sequences:
-    #             idx = tuple(int(s) for s in tuple(subseq_mismatch))
-    #             idx = np.ravel_multi_index(idx, idx_shape)
-    #             count[idx, 0] += 1
-
-    #     return count.tocsc()
-
     @staticmethod
     def get_kernel_matrix(X1, X2, beta, d, e, is_train=False, is_predict=False):
         """May seem redundant with __call__ but is necessary for caching the result"""
@@ -241,15 +106,13 @@ class LocalAlignmentKernel(BaseKernel):
 
         alphabet_size = int(max(max([list(seq) for seq in seqs_X1]))) + 1
 
+        # Choose the similarity matrix of your choice: Identity, Blosum62 or BLAST
         # S = np.identity(alphabet_size)
         # S = blosum62()
         S = blast()
 
         for idx1, seq1 in tqdm(enumerate(seqs_X1), total=len(seqs_X1)):
             for idx2, seq2 in enumerate(seqs_X2):
-                # seq_1_repeated = np.repeat(np.array(list(seq1))[:,np.newaxis], len(seq2), axis=1)
-                # seq_2_repeated = np.tile(np.array(list(seq2)), (len(seq1), 1))
-                # S = seq_1_repeated == seq_2_repeated
 
                 x2, y2, m = dynamic_compute(
                     S, seq1, seq2, beta, d, e)
@@ -258,10 +121,7 @@ class LocalAlignmentKernel(BaseKernel):
                 Y2[idx1, idx2] = y2
                 M[idx1, idx2] = m
 
-        # K = X2 + Y2 + M + np.log(np.exp(-X2 - Y2 - M) + np.exp(-Y2 - M) + np.exp(-X2 - M) + np.exp(-X2 - Y2))
         K = 1 + X2 + Y2 + M
-        # K = K.tocsc()
-        # K.data = K.data / beta
         K.data = np.log(K.data) / beta
 
         if is_train:
@@ -269,42 +129,9 @@ class LocalAlignmentKernel(BaseKernel):
             smallest_eig_value = eig_values[0]
             if smallest_eig_value < 0:
                 K -= (smallest_eig_value - 1e-10) * np.identity(len(seqs_X1))
-        # if allow_kernel_saving:
-        #     LocalAlignmentKernel.save_sparse_matrix(K, beta, d, e)
 
         return K
 
-    # @staticmethod
-    # def get_sparse_matrix_file_name(beta, d, e):
-    #     parent_folder = "sparse_matrices/local_alignment_kernels"
-    #     file_name = f"{parent_folder}/local_alignment_beta_{beta}_d_{d}_e_{e}.npz"
-    #     if not os.path.exists(parent_folder):
-    #         os.makedirs(parent_folder)
-    #     return file_name
-
-    # @staticmethod
-    # def check_exists_sparse_matrix_file_name(beta, d, e):
-    #     file_name = LocalAlignmentKernel.get_sparse_matrix_file_name(
-    #         beta, d, e)
-    #     return os.path.exists(file_name)
-
-    # @staticmethod
-    # def save_sparse_matrix(K, beta, d, e):
-    #     matrix_file_name = LocalAlignmentKernel.get_sparse_matrix_file_name(
-    #         beta, d, e)
-    #     scipy.sparse.save_npz(matrix_file_name, K)
-
-    # @staticmethod
-    # def load_sparse_matrix(beta, d, e):
-    #     print("Loading sparse kernel...")
-    #     matrix_file_name = LocalAlignmentKernel.get_sparse_matrix_file_name(
-    #         beta, d, e)
-    #     K = scipy.sparse.load_npz(matrix_file_name)
-    #     print("Kernel loaded.")
-    #     return K
-
     def __call__(self, X1, X2, is_train=False, is_predict=False):
         """Create a kernel matrix given inputs."""
-        # if allow_file_loading and LocalAlignmentKernel.check_exists_sparse_matrix_file_name(self.beta, self.d, self.e):
-        #    return LocalAlignmentKernel.load_sparse_matrix(self.beta, self.d, self.e)
         return self.get_kernel_matrix(X1, X2, self.beta, self.d, self.e, is_train=is_train, is_predict=is_predict)

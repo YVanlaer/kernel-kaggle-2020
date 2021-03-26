@@ -1,9 +1,10 @@
-"""Run kernel SVM."""
+"""Run kernel SVM on Local Alignment Kernel."""
 from sklearn.model_selection import train_test_split
 
-from dataset import Dataset, MergedDataset
-from kernels import GaussianKernel, LocalAlignmentKernel
+from dataset import Dataset
+from kernels import LocalAlignmentKernel
 from estimators import KernelSVMEstimator
+
 
 for k in [0, 1, 2]:
     ds = Dataset(k=k)
@@ -19,8 +20,3 @@ for k in [0, 1, 2]:
 
     acc = (y_pred == y_val).sum() / len(y_val)
     print(f'Accuracy dataset {k} is: {acc:.3g}')
-
-# from predict import predict
-# kernel = [LocalAlignmentKernel(beta=0.5, d=11, e=1)] * 3
-# lambas = [1e-6] * 3
-# predict(lambas, kernel, 'ksvm')

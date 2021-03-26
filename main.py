@@ -1,53 +1,30 @@
-"""Predict with ensembling method - Main function."""
+"""Run KRR using SumKernels for 2 Mismatch kernels per dataset."""
 
-from ensembling import ensembling_prediction
-from estimators import KernelSVMEstimator
-from kernels import MismatchKernel
+#############################################################################
+#                                                                           #
+#   Script reproducing our best result for the Kernel Kaggle Challenge.     #
+#                                                                           #
+#############################################################################
+
+from kernels import MismatchKernel, SumKernels
+from predict import predict
 
 
-if __name__ == '__main__':
+lambdas = [1e-6, 1e-6, 1e-6]
 
-    estimators1 = [
-        KernelSVMEstimator(lbd=1e-6, kernel=MismatchKernel(k=12, m=1)),
-        KernelSVMEstimator(lbd=1e-6, kernel=MismatchKernel(k=11, m=1)),
-        KernelSVMEstimator(lbd=1e-6, kernel=MismatchKernel(k=13, m=1)),
-    ]
+kernels = [
+    SumKernels(kernels=[
+        MismatchKernel(k=10, m=1),
+        MismatchKernel(k=7, m=1)
+    ]),
+    SumKernels(kernels=[
+        MismatchKernel(k=10, m=1),
+        MismatchKernel(k=7, m=1)
+    ]),
+    SumKernels(kernels=[
+        MismatchKernel(k=10, m=1),
+        MismatchKernel(k=7, m=1)
+    ]),
+]
 
-    estimators2 = [
-        KernelSVMEstimator(lbd=1e-6, kernel=MismatchKernel(k=10, m=1)),
-        KernelSVMEstimator(lbd=1e-6, kernel=MismatchKernel(k=7, m=1)),
-        KernelSVMEstimator(lbd=1e-6, kernel=MismatchKernel(k=9, m=1)),
-    ]
-
-    estimators3 = [
-        KernelSVMEstimator(lbd=1e-6, kernel=MismatchKernel(k=11, m=1)),
-        KernelSVMEstimator(lbd=1e-6, kernel=MismatchKernel(k=10, m=1)),
-        KernelSVMEstimator(lbd=1e-6, kernel=MismatchKernel(k=9, m=1)),
-    ]
-
-    # estimators1 = [
-    #     KernelSVMEstimator(lbd=1e-6, kernel=MismatchKernel(k=12, m=1)),
-    #     KernelSVMEstimator(lbd=1e-6, kernel=MismatchKernel(k=11, m=1)),
-    #     KernelSVMEstimator(lbd=1e-6, kernel=MismatchKernel(k=12, m=0)),
-    # ]
-
-    # estimators2 = [
-    #     KernelSVMEstimator(lbd=1e-6, kernel=MismatchKernel(k=10, m=1)),
-    #     KernelSVMEstimator(lbd=1e-6, kernel=MismatchKernel(k=7, m=1)),
-    #     KernelSVMEstimator(lbd=1e-6, kernel=MismatchKernel(k=10, m=0)),
-    # ]
-
-    # estimators3 = [
-    #     KernelSVMEstimator(lbd=1e-6, kernel=MismatchKernel(k=11, m=1)),
-    #     KernelSVMEstimator(lbd=1e-6, kernel=MismatchKernel(k=10, m=1)),
-    #     KernelSVMEstimator(lbd=1e-6, kernel=MismatchKernel(k=11, m=0)),
-    # ]
-
-    csv_name = 'y_pred_3_mismatch_kernels_ensemble.csv'
-
-    ensembling_prediction(
-        estimators1=estimators1,
-        estimators2=estimators2,
-        estimators3=estimators3,
-        csv_name=csv_name,
-    )
+predict(lambdas, kernels, "krr")

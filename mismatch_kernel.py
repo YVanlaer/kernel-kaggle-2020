@@ -1,4 +1,4 @@
-"""Run kernel SVM using SpectrumKernel."""
+"""Run kernel SVM or KRR using MismatchKernel."""
 import argparse
 import numpy as np
 import pandas as pd
@@ -28,10 +28,9 @@ def validate(args):
         elif args.estimator == 'krr':
             est = KernelRREstimator(lbd=1e-6, kernel=kernel)
 
-
         X_train, X_val, y_train, y_val = train_test_split(ds.X, ds.y,
-                                                        test_size=0.2,
-                                                        random_state=0)
+                                                          test_size=0.2,
+                                                          random_state=0)
 
         est.fit(X_train, y_train)
         y_pred = est.predict(X_val)
@@ -45,22 +44,22 @@ def grid_search(args):
     ds = Dataset(k=2)
 
     if args.estimator == 'ksvm':
-        estimator = KernelSVMEstimator(lbd=1e-6, kernel=MismatchKernel(k=3, m=1))
+        estimator = KernelSVMEstimator(
+            lbd=1e-6, kernel=MismatchKernel(k=3, m=1))
     elif args.estimator == 'krr':
-        estimator = KernelRREstimator(lbd=1e-6, kernel=MismatchKernel(k=3, m=1))
+        estimator = KernelRREstimator(
+            lbd=1e-6, kernel=MismatchKernel(k=3, m=1))
     kernels = []
 
-    for k in range(8, 13): #12):  #[5, 6, 7, 8]:
-    #     for m in range(1, 4):
-    #         kernels.append(MismatchKernel(k=k, m=m))
-        kernels.append(MismatchKernel(k=k, m=1))
+    for k in range(8, 13):
+        for m in range(1, 3):
+            kernels.append(MismatchKernel(k=k, m=m))
 
     param_grid = {
-        # 'lbd': np.logspace(-6, -2, 5),
-        'lbd': [1e-3],
+        'lbd': [1e-3],  # np.logspace(-6, -2, 5),
         'kernel': kernels,
     }
-    # cv = ShuffleSplit(n_splits=5, random_state=0, test_size=0.2)
+
     cv = KFold(n_splits=5)
 
     with joblib.parallel_backend(backend='loky'):
@@ -85,11 +84,13 @@ def get_predictions(args):
     predict(lambdas, kernels, args.estimator)
 
 
-
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Run computations on Mismatch kernel")
-    parser.add_argument("--mode", type=int, help="Mode to use: 0 for validation, 1 for grid search, 2 for prediction")
-    parser.add_argument("--estimator", type=str, help="Estimator to use. Available estimators are: ksvm, krr")
+    parser = argparse.ArgumentParser(
+        description="Run computations on Mismatch kernel")
+    parser.add_argument(
+        "--mode", type=int, help="Mode to use: 0 for validation, 1 for grid search, 2 for prediction")
+    parser.add_argument("--estimator", type=str,
+                        help="Estimator to use. Available estimators are: ksvm, krr")
     args = parser.parse_args()
 
     assert args.estimator in ["ksvm", "krr"]

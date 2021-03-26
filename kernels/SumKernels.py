@@ -26,7 +26,6 @@ class SumKernels(BaseKernel):
     @staticmethod
     def get_kernel_matrix(X1, X2, kernels):
         """May seem redundant with __call__ but is necessary for caching the result"""
-        print('Start computation of kernels')
         all_kernels = [kernel(X1, X2) for kernel in kernels]
         K = 0
         for kernel in all_kernels:
@@ -34,7 +33,6 @@ class SumKernels(BaseKernel):
 
         return K
 
-
-    def __call__(self, X1, X2, is_train = False, is_predict = False):
+    def __call__(self, X1, X2, is_train=False, is_predict=False):
         """Create a kernel matrix which is a sum of other kernels given inputs."""
         return self.get_kernel_matrix(X1, X2, self.kernels)

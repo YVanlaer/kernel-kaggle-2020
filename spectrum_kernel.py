@@ -1,24 +1,29 @@
 """Run kernel SVM using SpectrumKernel."""
-import numpy as np
-import pandas as pd
-from sklearn.model_selection import train_test_split, GridSearchCV, ShuffleSplit, cross_val_predict, KFold
-from time import time
+import argparse
+from sklearn.model_selection import train_test_split, GridSearchCV, KFold
 import joblib
 
 from dataset import Dataset
 from kernels import SpectrumKernel
-from estimators import KernelSVMEstimator
+from estimators import KernelSVMEstimator, KernelRREstimator
+from predict import predict
 
 
 # Validate
-if __name__ == '__main__':
+def validate(args):
     for k in [0, 1, 2]:
         ds = Dataset(k=k)
-        est = KernelSVMEstimator(lbd=1e-6, kernel=SpectrumKernel(k=3))
+
+        kernel = SpectrumKernel(k=3)
+
+        if args.estimator == 'ksvm':
+            est = KernelSVMEstimator(lbd=1e-6, kernel=kernel)
+        elif args.estimator == 'krr':
+            est = KernelRREstimator(lbd=1e-6, kernel=kernel)
 
         X_train, X_val, y_train, y_val = train_test_split(ds.X, ds.y,
-                                                        test_size=0.2,
-                                                        random_state=0)
+                                                          test_size=0.2,
+                                                          random_state=0)
 
         est.fit(X_train, y_train)
         y_pred = est.predict(X_val)
@@ -28,56 +33,65 @@ if __name__ == '__main__':
 
 
 # Grid search
-# if __name__ == '__main__':
-#     ds = Dataset(k=2)
+def grid_search(args):
+    ds = Dataset(k=2)
 
-#     estimator = KernelSVMEstimator(lbd=1e-6, kernel=SpectrumKernel(k=3))
-#     kernels = []
+    if args.estimator == 'ksvm':
+        estimator = KernelSVMEstimator(
+            lbd=1e-6, kernel=SpectrumKernel(k=3))
+    elif args.estimator == 'krr':
+        estimator = KernelRREstimator(
+            lbd=1e-6, kernel=SpectrumKernel(k=3))
+    kernels = []
 
-#     for k in range(5, 13):  #[5, 6, 7, 8]:
-#         kernels.append(SpectrumKernel(k=k))
+    for k in range(5, 13):
+        kernels.append(SpectrumKernel(k=k))
 
-#     param_grid = {
-#         'lbd': [1e-3],  #np.logspace(-6, -3, 2),
-#         'kernel': kernels,
-#     }
-#     # cv = ShuffleSplit(n_splits=5, random_state=0, test_size=0.2)
-#     cv = KFold(n_splits=5)
+    param_grid = {
+        'lbd': [1e-3],  # np.logspace(-6, -3, 2),
+        'kernel': kernels,
+    }
 
-#     with joblib.parallel_backend(backend='loky'):
-#         gscv = GridSearchCV(estimator, param_grid=param_grid, n_jobs=4, cv=cv,
-#                             refit=True, verbose=10, scoring='accuracy')
+    cv = KFold(n_splits=5)
 
-#         gscv.fit(ds.X, ds.y)
+    with joblib.parallel_backend(backend='loky'):
+        gscv = GridSearchCV(estimator, param_grid=param_grid, n_jobs=10, cv=cv,
+                            refit=True, verbose=10, scoring='accuracy')
 
-#     print(gscv.cv_results_)
-#     print(gscv.best_params_)
-#     print(gscv.best_score_)
+        gscv.fit(ds.X, ds.y)
+
+    print(gscv.cv_results_)
+    print(gscv.best_params_)
+    print(gscv.best_score_)
 
 
 # Predict
-# if __name__ == '__main__':
-#     print('Pred 1')
-#     ds = Dataset(k=0)
-#     est1 = KernelSVMEstimator(lbd=0.001, kernel=SpectrumKernel(k=11))
-#     est1.fit(ds.X, ds.y)
-#     y_pred1 = est1.predict(ds.X_test)
-#     y_pred1 = pd.Series(y_pred1, index=ds.X_test.index, name='Bound')
+def get_predictions(args):
+    lambdas = [1e-6, 1e-6, 1e-6]
+    kernels = [
+        SpectrumKernel(k=11),
+        SpectrumKernel(k=6),
+        SpectrumKernel(k=10),
+    ]
+    predict(lambdas, kernels, args.estimator)
 
-#     print('Pred 2')
-#     ds = Dataset(k=1)
-#     est2 = KernelSVMEstimator(lbd=0.001, kernel=SpectrumKernel(k=6))
-#     est2.fit(ds.X, ds.y)
-#     y_pred2 = est2.predict(ds.X_test)
-#     y_pred2 = pd.Series(y_pred2, index=ds.X_test.index, name='Bound')
 
-#     print('Pred 3')
-#     ds = Dataset(k=2)
-#     est3 = KernelSVMEstimator(lbd=0.001, kernel=SpectrumKernel(k=10))
-#     est3.fit(ds.X, ds.y)
-#     y_pred3 = est3.predict(ds.X_test)
-#     y_pred3 = pd.Series(y_pred3, index=ds.X_test.index, name='Bound')
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        description="Run computations on Spectrum kernel")
+    parser.add_argument(
+        "--mode", type=int, help="Mode to use: 0 for validation, 1 for grid search, 2 for prediction")
+    parser.add_argument("--estimator", type=str,
+                        help="Estimator to use. Available estimators are: ksvm, krr")
+    args = parser.parse_args()
 
-#     y_pred = pd.concat([y_pred1, y_pred2, y_pred3], axis=0, verify_integrity=True)
-#     y_pred = y_pred.astype(int)
-#     y_pred.to_csv('y_pred.csv')
+    assert args.estimator in ["ksvm", "krr"]
+
+    if args.mode == 0:
+        validate(args)
+    elif args.mode == 1:
+        grid_search(args)
+    elif args.mode == 2:
+        get_predictions(args)
+    else:
+        raise Exception("Wrong mode.")

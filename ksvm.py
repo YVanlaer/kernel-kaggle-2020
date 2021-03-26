@@ -1,7 +1,7 @@
-"""Run kernel SVM."""
+"""Run kernel SVM with a Gaussian kernel."""
 from sklearn.model_selection import train_test_split
 
-from dataset import Dataset, MergedDataset
+from dataset import Dataset
 from kernels import GaussianKernel
 from estimators import KernelSVMEstimator
 
